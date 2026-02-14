@@ -16,22 +16,34 @@ let skipAttempts = 0;
 
 /* ================= TRACKING (SAFE) ================= */
 function track(eventName, data = {}) {
-  if (window.firebaseTrack) {
-    window.firebaseTrack(eventName, data);
-  }
+  if (window.firebaseTrack) window.firebaseTrack(eventName, data);
 }
 
-/* ================= MUSIC ================= */
+/* ✅ ADDED: showModal() helper (replaces browser alert()) */
+function showModal(message){
+  const modal = document.getElementById("modal");
+  const text = document.getElementById("modalText");
+  const ok = document.getElementById("modalOk");
+  if (!modal || !text || !ok) return;
 
+  text.textContent = message;
+  modal.classList.remove("hidden");
+
+  const close = () => {
+    modal.classList.add("hidden");
+    ok.removeEventListener("click", close);
+  };
+  ok.addEventListener("click", close);
+}
+/* ✅ END ADDED */
+
+/* ================= MUSIC ================= */
 async function startMusic(){
   try{
     bgm.volume = 0.85;
     await bgm.play();
-  }catch(e){
-    // Mobile browsers require interaction — Start button handles that
-  }
+  }catch(e){}
 }
-
 function stopMusic(){
   if (!bgm) return;
   bgm.pause();
@@ -39,11 +51,8 @@ function stopMusic(){
 }
 
 /* ================= SCREEN CONTROL ================= */
-
 function setStep(n){
   step = Math.max(0, Math.min(lastStep, n));
-
-  // required for background switching
   document.body.dataset.step = String(step);
 
   screens.forEach(sc => {
@@ -57,28 +66,25 @@ function setStep(n){
     current.style.display = "block";
   }
 
-  if (bar){
-    bar.style.width = ((step / lastStep) * 100) + "%";
-  }
+  if (bar) bar.style.width = ((step / lastStep) * 100) + "%";
 
   if (stepPill){
     const shown = Math.min(step + 1, 6);
     stepPill.textContent = `LOVE MATCH SYSTEM v2.14 · Step ${shown}/6`;
   }
+
+  track("step_view", { step_number: step });
 }
 
 /* ================= SCAN ANIMATION ================= */
-
 const delay = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function runScan(){
   const c1 = qs("#c1"), c2 = qs("#c2"), c3 = qs("#c3"), c4 = qs("#c4");
   const scoreBox = qs("#scoreBox");
+  if (!c1 || !scoreBox) return;
 
-  if (!c1) return;
-
-  c1.textContent="…"; c2.textContent="…";
-  c3.textContent="…"; c4.textContent="…";
+  c1.textContent="…"; c2.textContent="…"; c3.textContent="…"; c4.textContent="…";
   scoreBox.hidden = true;
 
   await delay(500); c1.textContent="✔";
@@ -91,19 +97,16 @@ async function runScan(){
 }
 
 /* ================= NAVIGATION ================= */
-
 function wireNav(){
   qsa("[data-next]").forEach(btn =>
     btn.addEventListener("click", () => setStep(step+1))
   );
-
   qsa("[data-back]").forEach(btn =>
     btn.addEventListener("click", () => setStep(step-1))
   );
 }
 
 /* ================= NO BUTTON (ANDROID SAFE) ================= */
-
 function noButtonPlayful(){
   const noBtn = qs("#noBtn");
   const choiceArea = qs("#choiceArea");
@@ -117,10 +120,7 @@ function noButtonPlayful(){
     const maxX = Math.max(0, area.width - btn.width - pad);
     const maxY = Math.max(0, area.height - btn.height - pad);
 
-    return {
-      x: pad + Math.random()*maxX,
-      y: pad + Math.random()*maxY
-    };
+    return { x: pad + Math.random()*maxX, y: pad + Math.random()*maxY };
   }
 
   function moveAway(){
@@ -128,13 +128,11 @@ function noButtonPlayful(){
     noBtn.style.transition = "left 160ms ease, top 160ms ease";
     noBtn.style.left = `${x}px`;
     noBtn.style.top  = `${y}px`;
-    track("no_button_evaded", { step_number: step });     /*tracking line added*/  
+    track("no_button_evaded", { step_number: step });
   }
 
-  // Desktop
   noBtn.addEventListener("mouseenter", moveAway);
 
-  // Android / iOS
   noBtn.addEventListener("pointerdown", (e)=>{
     e.preventDefault();
     e.stopPropagation();
@@ -147,21 +145,17 @@ function noButtonPlayful(){
     moveAway();
   }, {passive:false});
 
-  // Proximity tease
   choiceArea.addEventListener("mousemove", (e)=>{
     const r = noBtn.getBoundingClientRect();
     const cx = r.left + r.width/2;
     const cy = r.top + r.height/2;
     const dx = e.clientX - cx;
     const dy = e.clientY - cy;
-    if (Math.sqrt(dx*dx + dy*dy) < 120){
-      moveAway();
-    }
+    if (Math.sqrt(dx*dx + dy*dy) < 120) moveAway();
   });
 }
 
-/* ================= PLANNER ================= */
-
+/* ================= PLANNER + MESSAGE ================= */
 function formatPlan(dateStr, timeStr, placeStr){
   const parts = [];
   if (dateStr) parts.push(`Date: ${dateStr}`);
@@ -169,25 +163,22 @@ function formatPlan(dateStr, timeStr, placeStr){
   if (placeStr) parts.push(`Place: ${placeStr}`);
   return parts.join(" · ");
 }
-
 function buildFinalMessage(planLine){
   return planLine
     ? `Anjali 💗\nWe are officially booked! 💘\n${planLine}\n\nReply "Confirmed Puku ❤️" to seal it.`
     : `Anjali 💗\nWe are officially booked! 💘\n\nReply "Confirmed Puku ❤️" to seal it.`;
 }
-
 function showConfirmation(planLine){
   const box = qs("#confirmBox");
   const text = qs("#confirmText");
-  if (!box) return;
+  if (!box || !text) return;
 
   finalMessage = buildFinalMessage(planLine);
   box.hidden = false;
   text.textContent = finalMessage;
 }
 
-/* ================= COPY FUNCTION ================= */
-
+/* ================= COPY ================= */
 async function copyToClipboard(text){
   try{
     if (navigator.clipboard && window.isSecureContext){
@@ -213,7 +204,6 @@ async function copyToClipboard(text){
 }
 
 /* ================= RESET ================= */
-
 function resetAll(){
   selectedDate = "";
   selectedPlace = "";
@@ -228,27 +218,28 @@ function resetAll(){
 
   const confirmBox = qs("#confirmBox");
   if (confirmBox) confirmBox.hidden = true;
+
+  const confirmText = qs("#confirmText");
+  if (confirmText) confirmText.textContent = "";
 }
 
 /* ================= MAIN ================= */
-
 function main(){
-
   wireNav();
   noButtonPlayful();
   setStep(0);
 
   qs("#startBtn")?.addEventListener("click", async ()=>{
-    track("start_scan_clicked");            /*tracking line added*/
+    track("start_scan_clicked");
     await startMusic();
     setStep(1);
     runScan();
   });
 
   qs("#toQBtn")?.addEventListener("click", ()=>{
-        track("scan_complete_proceed");            /*tracking line added*/
-        setStep(2)
-});
+    track("scan_complete_proceed");
+    setStep(2);
+  });
 
   qs("#yesBtn")?.addEventListener("click", ()=>{
     track("valentine_yes_clicked");
@@ -261,7 +252,7 @@ function main(){
       qsa(".dateBtn").forEach(b=>b.classList.remove("selected"));
       btn.classList.add("selected");
       selectedDate = btn.dataset.date || "";
-      track("date_selected", { date: selectedDate });       /*tracking line added*/
+      track("date_selected", { date: selectedDate });
     });
   });
 
@@ -271,12 +262,11 @@ function main(){
       qsa(".placeBtn").forEach(b=>b.classList.remove("selected"));
       btn.classList.add("selected");
       selectedPlace = btn.dataset.place || "";
-      track("place_selected", { place: selectedPlace });        /*tracking line added*/
+      track("place_selected", { place: selectedPlace });
     });
   });
 
-  /* ========= PLAYFUL SKIP ========= */
-
+  /* ========= PLAYFUL SKIP (2 blocked, 3rd allowed) ========= */
   const skipMessages = [
     "Hehe 😌 You really want to skip this? I’ll be a little sad 🥺",
     "Okay okay… last chance 💗 Are you *sure* you want to skip?",
@@ -285,15 +275,16 @@ function main(){
 
   qs("#skipPlan")?.addEventListener("click", ()=>{
     skipAttempts++;
-    track("skip_attempt", { attempt: skipAttempts });           /*tracking line added*/
+    track("skip_attempt", { attempt: skipAttempts });
 
+    // ✅ CHANGED: alert -> showModal
     if (skipAttempts < 3){
-      alert(skipMessages[skipAttempts - 1]);
+      showModal(skipMessages[skipAttempts - 1]);
       return;
     }
 
-    track("skip_confirmed");                                    /*tracking line added*/
-    alert(skipMessages[2]);
+    track("skip_confirmed");
+    showModal(skipMessages[2]);
     setStep(6);
     showConfirmation("");
   });
@@ -301,10 +292,11 @@ function main(){
   qs("#confirmPlan")?.addEventListener("click", ()=>{
     const timeVal = qs("#timePick")?.value || "";
 
-    if (!selectedDate) return alert("Pick one of the dates first 😌");
-    if (!selectedPlace) return alert("Pick the vibe first 😌");
+    // ✅ CHANGED: alert -> showModal
+    if (!selectedDate) return showModal("Pick one of the dates first 😌");
+    if (!selectedPlace) return showModal("Pick the vibe first 😌");
 
-    track("date_confirmed", { date: selectedDate, place: selectedPlace, time: timeVal });       /*tracking line added*/
+    track("date_confirmed", { date: selectedDate, place: selectedPlace, time: timeVal });
 
     setStep(6);
     showConfirmation(formatPlan(selectedDate, timeVal, selectedPlace));
@@ -312,9 +304,9 @@ function main(){
 
   qs("#copyMsg")?.addEventListener("click", async ()=>{
     const ok = await copyToClipboard(finalMessage);
-    const btn = qs("#copyMsg");
-    track("message_copied", { success: !!ok });                 /*tracking line added*/
+    track("message_copied", { success: !!ok });
 
+    const btn = qs("#copyMsg");
     if (btn){
       btn.textContent = ok ? "Copied ✅" : "Copy failed ❌";
       setTimeout(()=> btn.textContent="Copy message 📋", 1500);
@@ -322,7 +314,7 @@ function main(){
   });
 
   qs("#replayBtn")?.addEventListener("click", ()=>{
-    track("replay_clicked");                                    /*tracking line added*/
+    track("replay_clicked");
     stopMusic();
 
     const noBtn = qs("#noBtn");
