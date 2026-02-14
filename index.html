@@ -128,8 +128,8 @@
 
           <label class="lbl">Choose our vibe</label>
           <div class="placeOptions">
-            <button type="button" class="placeBtn" data-place="Public Café Date ☕">☕ Café Date</button>
-            <button type="button" class="placeBtn" data-place="Private Cozy Day at My Place 🕯️">🕯️ Just You & Me</button>
+            <button type="button" class="placeBtn" data-place="Café Date ☕">☕ Café Date</button>
+            <button type="button" class="placeBtn" data-place="Cozy Day at My Place 🕯️">🕯️ Just You & Me</button>
           </div>
 
           <label class="lbl">Time</label>
@@ -177,6 +177,16 @@
             </div>
         </div>
         </div>
+        <!-- ✅ ADDED: Geo gate overlay (blocks app outside India) -->
+        <div id="geoGate" class="modal hidden" role="dialog" aria-modal="true">
+            <div class="modalBox">
+            <div id="geoText" class="modalText">This experience is available only in India 🇮🇳</div>
+            <div class="modalActions">
+                <button id="geoOk" class="btn primary" type="button">Okay</button>
+            </div>
+            </div>
+        </div>
+      <!-- ✅ END ADDED -->
     </section>
   </main>
   <!-- ================= Firebase (SAFE compat, non-module) ================= -->
