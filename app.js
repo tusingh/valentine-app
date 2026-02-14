@@ -19,6 +19,7 @@ function track(eventName, data = {}) {
   if (window.firebaseTrack) window.firebaseTrack(eventName, data);
 }
 
+/* ================= Custom modal (existing) ================= */
 /* ✅ ADDED: showModal() helper (replaces browser alert()) */
 function showModal(message){
   const modal = document.getElementById("modal");
@@ -34,6 +35,54 @@ function showModal(message){
     ok.removeEventListener("click", close);
   };
   ok.addEventListener("click", close);
+}
+/* ✅ END ADDED */
+
+/* ✅ ADDED: Geo gate helpers */
+function lockApp(message){
+  const gate = document.getElementById("geoGate");
+  const text = document.getElementById("geoText");
+  const ok = document.getElementById("geoOk");
+  if (!gate || !text || !ok) return;
+
+  text.textContent = message;
+  gate.classList.remove("hidden");
+
+  // Disable interactions behind the gate
+  document.body.style.pointerEvents = "none";
+  gate.style.pointerEvents = "auto";
+
+  // Keep it non-closable by default (so blocked stays blocked)
+  ok.addEventListener("click", () => {});
+}
+
+async function geoAllowOnlyIndia(){
+  const url = "https://ipapi.co/json/";
+
+  try{
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("geo fetch failed");
+    const data = await res.json();
+
+    const countryCode = (data && data.country_code) ? String(data.country_code).toUpperCase() : "";
+    const city = data && data.city ? String(data.city) : "";
+
+    track("geo_checked", { country: countryCode, city });
+
+    if (countryCode !== "IN"){
+      track("geo_blocked", { country: countryCode, city });
+      lockApp(`This experience is available only in India 🇮🇳\n(Detected: ${countryCode || "Unknown"})`);
+      return false;
+    }
+
+    track("geo_allowed", { country: countryCode, city });
+    return true;
+
+  }catch(e){
+    // ✅ Fail-open so you don't accidentally block your girlfriend due to network issues
+    track("geo_check_failed");
+    return true;
+  }
 }
 /* ✅ END ADDED */
 
@@ -224,7 +273,14 @@ function resetAll(){
 }
 
 /* ================= MAIN ================= */
-function main(){
+/* ✅ CHANGED: made main() async so we can await geo check */
+async function main(){
+
+  /* ✅ ADDED: Geo restriction gate at startup */
+  const allowed = await geoAllowOnlyIndia();
+  if (!allowed) return;
+  /* ✅ END ADDED */
+
   wireNav();
   noButtonPlayful();
   setStep(0);
